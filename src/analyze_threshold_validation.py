@@ -10,7 +10,7 @@ except ImportError:
 
 
 REPORT = ROOT / "reports/03_favorite_threshold_validation"
-OUTCOMES = {"Home": ("home_prob", "home_odds", "H"), "Away": ("away_prob", "away_odds", "A")}
+OUTCOMES = {"Home": ("home_prob", "home_odds", "H")}
 SEASONS = ("2024-2025", "2025-2026")
 THRESHOLDS = np.round(np.arange(0.50, 0.91, 0.01), 2)
 BOOTSTRAPS, MIN_BETS = 10_000, 30
@@ -85,6 +85,8 @@ def stability_table(results):
 
 
 def write_report(results):
+    experiments = len(results)
+    pairs_total = results.groupby(["league", "outcome"]).ngroups
     positive_roi = int((results.validation_roi > 0).sum())
     positive_cal = int((results.validation_cal_edge > 0).sum())
     positive_ci = int((results.validation_ci_low > 0).sum())
@@ -94,32 +96,32 @@ def write_report(results):
     evidence = "Partial" if pairs.any() else "No"
     lines = [
         "# Report 03 — Favorite Threshold Validation", "", "## Research Question", "",
-        "Can a favorite probability threshold selected in one season generalize to another season?", "",
+        "Can a Home-favorite probability threshold selected in one season generalize to another season?", "",
         "## Executive Summary", "",
-        f"- {positive_roi}/20 validation experiments produced positive ROI; {positive_cal}/20 had positive calibration edge, and {positive_ci}/20 had a 95% ROI interval fully above zero.",
-        f"- {int(same_sign)}/10 league-outcome pairs kept the same ROI sign across both directions; {int(pairs.sum())}/10 were positive in both.",
+        f"- {positive_roi}/{experiments} validation experiments produced positive ROI; {positive_cal}/{experiments} had positive calibration edge, and {positive_ci}/{experiments} had a 95% ROI interval fully above zero.",
+        f"- {int(same_sign)}/{pairs_total} leagues kept the same ROI sign across both directions; {int(pairs.sum())}/{pairs_total} were positive in both.",
         f"- Strongest validation: {best.league} {best.outcome}, {best.validation_roi:+.1%} ROI [{best.validation_ci_low:+.1%}, {best.validation_ci_high:+.1%}]. Weakest: {worst.league} {worst.outcome}, {worst.validation_roi:+.1%} [{worst.validation_ci_low:+.1%}, {worst.validation_ci_high:+.1%}].",
         f"- Evidence of a persistent favorite edge is {evidence.lower()}; validation, rather than optimized training ROI, does not support a broad strategy.", "",
         "## Research Scorecard", "", "| Metric | Value |", "| --- | ---: |",
-        "| Validation Experiments | 20 |", f"| Positive Validation ROI | {positive_roi} / 20 |",
-        f"| Positive Validation Calibration Edge | {positive_cal} / 20 |", f"| Positive ROI 95% CI | {positive_ci} / 20 |",
-        f"| Same-Sign ROI Across Both Directions | {int(same_sign)} / 10 |", f"| Evidence of Persistent Edge | {evidence} |", "",
+        f"| Validation Experiments | {experiments} |", f"| Positive Validation ROI | {positive_roi} / {experiments} |",
+        f"| Positive Validation Calibration Edge | {positive_cal} / {experiments} |", f"| Positive ROI 95% CI | {positive_ci} / {experiments} |",
+        f"| Same-Sign ROI Across Both Directions | {int(same_sign)} / {pairs_total} |", f"| Evidence of Persistent Edge | {evidence} |", "",
         "## Method", "",
-        "For each league and Home/Away outcome, thresholds from 50% to 90% are searched on one training season. The highest-ROI threshold with at least 30 bets is locked and applied unchanged to the other season; then the direction is reversed. ROI intervals use 10,000 deterministic bootstrap resamples.", "",
+        "For each league, Home-favorite thresholds from 50% to 90% are searched on one training season. The highest-ROI threshold with at least 30 bets is locked and applied unchanged to the other season; then the direction is reversed. ROI intervals use 10,000 deterministic bootstrap resamples.", "",
         "## Validation Results", "", result_table(results), "",
         "## Stability Summary", "", stability_table(results), "",
         "## Key Findings", "",
-        f"- Optimized training thresholds generalized to positive ROI in {positive_roi}/20 experiments, but only {positive_ci}/20 cleared zero at the 95% level.",
-        f"- {int(pairs.sum())} league-outcome pairs were profitable in both directions; shared matches and related thresholds mean these are not fully independent confirmations.",
+        f"- Optimized training thresholds generalized to positive ROI in {positive_roi}/{experiments} experiments, but only {positive_ci}/{experiments} cleared zero at the 95% level.",
+        f"- Profitable in both directions: {int(pairs.sum())}/{pairs_total} leagues. Shared matches and related thresholds mean these are not fully independent confirmations.",
         "- Calibration edge and ROI can diverge because normalized probabilities remove overround while bets settle at unnormalized closing odds.",
         "- Selected thresholds vary by training season, indicating sensitivity to the sample and threshold search.", "",
         "## Discussion", "",
         "High training ROI is expected after in-sample optimization; validation ROI is the decisive result. A positive result in only one direction is weak evidence, and a point estimate remains inconclusive when its interval crosses zero. This is still exploratory because 41 thresholds are searched per training sample.", "",
         "## Next Experiment", "", "**Question**", "",
-        "Do any league-outcome thresholds remain profitable when selected using multiple historical seasons and evaluated on a completely untouched future season?", "",
+        "Do any league-level Home-favorite thresholds remain profitable when selected using multiple historical seasons and evaluated on a completely untouched future season?", "",
         "**Experiment**", "",
         "- Add historical seasons to form a multi-season training window.",
-        "- Lock one threshold per league and outcome before viewing the next season.",
+        "- Lock one Home-favorite threshold per league before viewing the next season.",
         "- Evaluate calibration edge, ROI, and confidence intervals on that untouched season.", "",
     ]
     (REPORT / "report.md").write_text("\n".join(lines), encoding="utf-8")
