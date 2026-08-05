@@ -80,4 +80,4 @@ Validate season-trained absolute favorite thresholds out of sample with:
 python src/analyze_threshold_validation.py
 ```
 
-The analysis searches Home-favorite thresholds on one season, locks the best eligible rule, and evaluates it unchanged on the other season in both directions. Results are written to `reports/03_favorite_threshold_validation/`.
+The analysis searches absolute Home-favorite thresholds at or above the training season's top-15% probability cutoff, locks the best eligible rule, and evaluates it unchanged on the other season in both directions. Results are written to `reports/03_favorite_threshold_validation/`.

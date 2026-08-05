@@ -13,7 +13,7 @@ REPORT = ROOT / "reports/03_favorite_threshold_validation"
 OUTCOMES = {"Home": ("home_prob", "home_odds", "H")}
 SEASONS = ("2024-2025", "2025-2026")
 THRESHOLDS = np.round(np.arange(0.50, 0.91, 0.01), 2)
-BOOTSTRAPS, MIN_BETS = 10_000, 30
+BOOTSTRAPS, MIN_BETS, TOP_SHARE = 10_000, 30, .15
 
 
 def evaluate(matches, outcome, threshold, rng):
@@ -38,10 +38,12 @@ def analyze(matches):
         for outcome in OUTCOMES:
             for train_season, validation_season in (SEASONS, SEASONS[::-1]):
                 train = matches[(matches.league == code) & (matches.season == train_season)]
+                search_floor = train.home_prob.quantile(1 - TOP_SHARE)
                 rows = []
-                for threshold in THRESHOLDS:
+                for threshold in THRESHOLDS[THRESHOLDS >= search_floor]:
                     row = {"league": league, "outcome": outcome, "train_season": train_season,
-                           "validation_season": validation_season, "threshold": threshold}
+                           "validation_season": validation_season, "search_floor": search_floor,
+                           "threshold": threshold}
                     row.update(evaluate(train, outcome, threshold, rng))
                     row["eligible"] = row["bets"] >= MIN_BETS
                     rows.append(row)
@@ -107,7 +109,7 @@ def write_report(results):
         f"| Positive Validation Calibration Edge | {positive_cal} / {experiments} |", f"| Positive ROI 95% CI | {positive_ci} / {experiments} |",
         f"| Same-Sign ROI Across Both Directions | {int(same_sign)} / {pairs_total} |", f"| Evidence of Persistent Edge | {evidence} |", "",
         "## Method", "",
-        "For each league, Home-favorite thresholds from 50% to 90% are searched on one training season. The highest-ROI threshold with at least 30 bets is locked and applied unchanged to the other season; then the direction is reversed. ROI intervals use 10,000 deterministic bootstrap resamples.", "",
+        "For each league, the training season's 85th percentile of normalized Home probability defines the search floor. Absolute 1-point thresholds from the first grid value at or above that floor through 90% are searched. The highest-ROI threshold with at least 30 bets is locked and applied unchanged to the other season; then the direction is reversed. ROI intervals use 10,000 deterministic bootstrap resamples.", "",
         "## Validation Results", "", result_table(results), "",
         "## Stability Summary", "", stability_table(results), "",
         "## Key Findings", "",
@@ -116,7 +118,7 @@ def write_report(results):
         "- Calibration edge and ROI can diverge because normalized probabilities remove overround while bets settle at unnormalized closing odds.",
         "- Selected thresholds vary by training season, indicating sensitivity to the sample and threshold search.", "",
         "## Discussion", "",
-        "High training ROI is expected after in-sample optimization; validation ROI is the decisive result. A positive result in only one direction is weak evidence, and a point estimate remains inconclusive when its interval crosses zero. This is still exploratory because 41 thresholds are searched per training sample.", "",
+        "High training ROI is expected after in-sample optimization; validation ROI is the decisive result. A positive result in only one direction is weak evidence, and a point estimate remains inconclusive when its interval crosses zero. This is still exploratory because multiple strong-favorite thresholds are searched per training sample.", "",
         "## Next Experiment", "", "**Question**", "",
         "Do any league-level Home-favorite thresholds remain profitable when selected using multiple historical seasons and evaluated on a completely untouched future season?", "",
         "**Experiment**", "",
