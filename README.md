@@ -2,7 +2,7 @@
 
 Prediction Lab is a quantitative research laboratory for understanding probabilistic markets. The first milestone is a clean, reproducible dataset of Big Five European soccer matches and closing 1X2 odds.
 
-See [Vision and Principles](docs/vision_and_principles.md), the [Roadmap](docs/roadmap.md), and the [dataset validation report](reports/00_dataset_validation.md).
+See [Vision and Principles](docs/vision_and_principles.md), the [Roadmap](docs/roadmap.md), the [Report Style Guide](docs/report_style_guide.md), and the [dataset validation report](reports/00_dataset_validation.md).
 
 ## Phase 0 — Big Five Dataset v0
 

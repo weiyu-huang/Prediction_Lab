@@ -37,7 +37,6 @@ def evaluate(matches, outcome, top_percent, rng):
         "calibration_edge": win_rate - average_probability,
         "betting_edge": win_rate - 1 / average_odds,
         "roi": profits.mean(),
-        "total_profit": profits.sum(),
         "roi_ci_low": np.quantile(bootstrap_roi, 0.025),
         "roi_ci_high": np.quantile(bootstrap_roi, 0.975),
     }
@@ -61,37 +60,17 @@ def grouped(matches, column, rng):
     return pd.concat(tables, ignore_index=True)
 
 
-def summary(overall):
-    best = overall.loc[overall.roi.idxmax()]
-    significant = overall[overall.roi_ci_low > 0]
-    confidence = (
-        f"{len(significant)} of {len(overall)} overall subsets have a 95% ROI interval fully above zero."
-        if len(significant)
-        else "No overall subset has a 95% ROI interval fully above zero."
-    )
-    return (
-        f"The best overall result is {best.outcome.title()} Top {int(best.top_percent)}%: "
-        f"ROI {best.roi:+.2%} across {int(best.bets)} bets "
-        f"(95% CI {best.roi_ci_low:+.2%} to {best.roi_ci_high:+.2%}). {confidence}"
-    )
-
-
-def table_markdown(table):
-    columns = [
-        *([table.columns[0]] if table.columns[0] in ("league", "season") else []),
-        "outcome", "top_percent", "bets", "avg_implied_probability", "avg_closing_odds",
-        "observed_win_rate", "break_even_win_rate", "calibration_edge", "betting_edge",
-        "roi", "total_profit", "roi_ci_low", "roi_ci_high",
-    ]
+def compact_table(table, scope=None):
+    columns = ([scope] if scope else []) + ["outcome", "top_percent", "bets", "avg_implied_probability", "avg_closing_odds", "observed_win_rate", "break_even_win_rate", "calibration_edge", "betting_edge", "roi"]
     display = table[columns].copy()
-    for column in display.select_dtypes("number"):
-        if column not in ("top_percent", "bets"):
-            display[column] = display[column].map(lambda value: f"{value:.3f}")
+    display["95% CI"] = table.apply(lambda row: f"[{row.roi_ci_low:+.1%}, {row.roi_ci_high:+.1%}]", axis=1)
+    for column in ("avg_implied_probability", "observed_win_rate", "break_even_win_rate", "calibration_edge", "betting_edge", "roi"):
+        display[column] = display[column].map(lambda value: f"{value:+.1%}" if column in ("calibration_edge", "betting_edge", "roi") else f"{value:.1%}")
+    display["avg_closing_odds"] = display["avg_closing_odds"].map(lambda value: f"{value:.2f}")
     return markdown(display.rename(columns={
         "top_percent": "top_%", "avg_implied_probability": "avg_prob", "avg_closing_odds": "avg_odds",
         "observed_win_rate": "win_rate", "break_even_win_rate": "break_even",
-        "calibration_edge": "cal_edge", "betting_edge": "bet_edge", "total_profit": "profit",
-        "roi_ci_low": "ci_low", "roi_ci_high": "ci_high",
+        "calibration_edge": "cal_edge", "betting_edge": "bet_edge",
     }))
 
 
@@ -99,28 +78,40 @@ def write_report(overall, by_league, by_season):
     best = overall.loc[overall.roi.idxmax()]
     league_positive = by_league[by_league.roi_ci_low > 0]
     season_positive = by_season[by_season.roi_ci_low > 0]
-    learned = (
-        f"Across cumulative favorite thresholds, the strongest overall result was {best.outcome.title()} "
-        f"Top {int(best.top_percent)}% with ROI {best.roi:+.2%}; uncertainty and subgroup stability determine "
-        "whether this is evidence of an edge or sampling noise."
-    )
+    season_target = by_season[(by_season.outcome == best.outcome) & (by_season.top_percent == best.top_percent)]
+    league_best = by_league.loc[by_league.groupby("league").roi.idxmax()]
     lines = [
-        "# Report 02 — Favorite Edge Validation", "", "## Executive Summary", "", summary(overall), "",
+        "# Report 02 — Favorite Edge Validation", "", "## Research Question", "",
+        "Does the calibration bias of strong Home and Away favorites translate into positive betting returns after bookmaker margin?", "",
+        "## Executive Summary", "",
+        f"- Best overall result: {best.outcome.title()} Top {int(best.top_percent)}%, ROI {best.roi:+.1%} with 95% CI [{best.roi_ci_low:+.1%}, {best.roi_ci_high:+.1%}].",
+        "- No overall or season-level result is statistically significant at the 95% level.",
+        "- The signal is not stable across seasons; the best overall rule is positive in one season and negative in the other.",
+        "- La Liga Home favorites merit one focused out-of-sample test, but the broad favorite-edge hypothesis is not supported.", "",
+        "## Research Scorecard", "",
+        "| Metric | Value |", "| --- | ---: |",
+        f"| Best ROI | {best.roi:+.1%} |",
+        "| Statistically Significant | No |",
+        "| Stable Across Seasons | No |",
+        "| Stable Across Leagues | Partial — La Liga only |",
+        "| Worth Pursuing | Yes — one focused test |", "",
         "## Method", "",
-        "For Home and Away separately, each scope selects matches at or above its own 95th, 90th, 85th, 80th, and 75th probability percentiles. Ties at the cutoff are included. Inverse closing odds are normalized across 1X2 outcomes to remove overround. Each selected bet risks one unit; a win returns `decimal odds - 1` profit and a loss returns `-1`. ROI confidence intervals use 10,000 deterministic bootstrap resamples of per-bet profit.",
-        "", "## Overall Results", "", table_markdown(overall), "",
-        "## By League", "", table_markdown(by_league), "",
-        "## By Season", "", table_markdown(by_season), "",
-        "## Key Findings", "", f"- {summary(overall)}",
-        f"- {len(season_positive)} of {len(by_season)} season-level subsets have a 95% ROI interval fully above zero.",
-        f"- {len(league_positive)} league-level subsets have a positive 95% interval; all are nested La Liga Home thresholds, so they are one concentrated signal rather than independent confirmations.",
-        f"- League-level Top 5% subsets contain as few as {int(by_league.bets.min())} bets and should be treated as exploratory.",
-        "- The percentile subsets are nested, so results across Top 5% through Top 25% are not independent tests.",
-        "", "## Discussion", "",
-        "Calibration edge is not automatically betting edge: normalized market probabilities remove overround for forecasting, while realized returns are paid at the original closing odds. The requested `1 / average odds` break-even rate is a useful summary approximation; because odds vary across bets, realized per-bet ROI is the definitive return measure. Positive point estimates are only credible when their confidence intervals and direction remain stable across leagues and seasons.",
-        "", "## Next Research Question", "", f"What have we learned? {learned}", "",
-        "What is the most valuable next experiment?", "",
-        "**Do any apparent favorite returns persist in non-overlapping probability bands and out-of-sample season splits, rather than only in nested cumulative thresholds?**", "",
+        "For Home and Away separately, each scope selects its highest 5%, 10%, 15%, 20%, and 25% normalized implied probabilities. Each bet risks one unit at closing odds. ROI intervals use 10,000 deterministic bootstrap resamples. Percentile subsets are nested and ties at the cutoff are included.",
+        "", "## Results", "", "### Overall", "", compact_table(overall), "",
+        "### By Season", "", f"The best overall rule ({best.outcome.title()} Top {int(best.top_percent)}%) is not stable:", "", compact_table(season_target, "season"), "",
+        "### By League", "", "Best point estimate within each league:", "", compact_table(league_best, "league"), "",
+        f"All {len(league_positive)} positive league-level confidence intervals are nested La Liga Home thresholds. Full league and season tables are exported under `tables/`.", "",
+        "## Discussion", "",
+        "- Calibration edge does not automatically translate into betting edge after margin.",
+        "- Positive point estimates are insufficient when the 95% interval includes zero.",
+        "- Season stability is more persuasive than one league's nested in-sample thresholds.",
+        "- Because odds vary, per-bet ROI is definitive; `1 / average odds` is only a summary break-even approximation.", "",
+        "## Next Experiment", "", "**Question**", "",
+        "Does the La Liga Home favorite signal persist out-of-sample, or is it explained by threshold selection and sampling variance?", "",
+        "**Experiment**", "",
+        "- Select non-overlapping probability bands using 2024-2025 only.",
+        "- Evaluate the locked bands on 2025-2026.",
+        "- Reverse the train/test seasons and compare direction, ROI, and confidence intervals.", "",
     ]
     (REPORT / "report.md").write_text("\n".join(lines), encoding="utf-8")
 

@@ -99,49 +99,59 @@ def markdown(table: pd.DataFrame) -> str:
     return "\n".join("| " + " | ".join(map(str, row)) + " |" for row in rows)
 
 
-def observations(table: pd.DataFrame, scopes=()) -> list[str]:
-    labels = [*scopes, "outcome", "bin"]
-
-    def describe(index):
-        row = table.loc[index]
-        label = ", ".join(f"{name}={row[name]}" for name in labels)
-        return f"{label} (error {row['error']:+.3f}, n={int(row['count'])})"
-
-    low = (table["count"] < 50).sum()
-    return [
-        f"Largest positive deviation: {describe(table.error.idxmax())}.",
-        f"Largest negative deviation: {describe(table.error.idxmin())}.",
-        f"Largest absolute error: {describe(table.error.abs().idxmax())}.",
-        (f"{low} of {len(table)} bins have fewer than 50 observations; their deviations are especially noisy."
-         if low else "No bin has fewer than 50 observations."),
-    ]
+def calibration_summary(table, scope=None):
+    rows = []
+    groups = [scope, "outcome"] if scope else ["outcome"]
+    for keys, data in table.groupby(groups, sort=False):
+        keys = keys if isinstance(keys, tuple) else (keys,)
+        weight = data["count"]
+        row = dict(zip(groups, keys))
+        row.update(
+            mean_error=(data.error * weight).sum() / weight.sum(),
+            mean_abs_error=(data.error.abs() * weight).sum() / weight.sum(),
+            max_abs_error=data.error.abs().max(),
+            matches=int(weight.sum()),
+        )
+        rows.append(row)
+    summary = pd.DataFrame(rows)
+    for column in ("mean_error", "mean_abs_error", "max_abs_error"):
+        summary[column] = summary[column].map(lambda value: f"{value:+.1%}" if column == "mean_error" else f"{value:.1%}")
+    return markdown(summary.rename(columns={"mean_error": "bias", "mean_abs_error": "MAE", "max_abs_error": "max_error"}))
 
 
 def write_report(overall, by_league, by_season):
+    largest = overall.loc[overall.error.abs().idxmax()]
     lines = [
-        "# Report 01 — Market Calibration", "", "## Research question", "",
-        "How well do normalized average closing 1X2 market probabilities match observed Home / Draw / Away frequencies, and is the pattern stable across leagues and seasons?",
-        "", "## Dataset and method", "",
-        "The analysis uses all 3,504 Big Five matches from 2024-2025 and 2025-2026. For each match, inverse Home / Draw / Away closing odds are normalized to sum to one, removing the bookmaker overround. Each outcome is grouped into 20 quantile bins, so bins have similar sample sizes. Error is `actual probability - average inferred probability`.",
-        "", "![Overall calibration](figures/overall.png)", "", "## Overall calibration", "",
-    ]
-    for outcome in OUTCOMES:
-        lines += [f"### {outcome.title()}", "", markdown(overall[overall.outcome == outcome]), ""]
-    for title, table, column, image in (
-        ("By league", by_league, "league", "by_league.png"),
-        ("By season", by_season, "season", "by_season.png"),
-    ):
-        lines += [f"## {title}", "", f"![Calibration {title.lower()}](figures/{image})", ""]
-        for value in table[column].drop_duplicates():
-            lines += [f"### {value}", "", markdown(table[table[column] == value]), ""]
-    lines += ["## Auto-generated observations", ""]
-    for label, table, scopes in (("Overall", overall, ()), ("By league", by_league, ("league",)), ("By season", by_season, ("season",))):
-        lines += [f"- {label}: {text}" for text in observations(table, scopes)]
-    lines += [
-        "", "## Next Research Question", "",
-        "What have we learned? Closing-market probabilities are broadly informative, but the strongest apparent deviations become noisy after splitting by league or season.", "",
-        "What is the most valuable next experiment?", "",
-        "**Does the apparent calibration bias among strong Home and Away favorites survive bookmaker margin and translate into positive flat-betting returns?**", "",
+        "# Report 01 — Market Calibration", "", "## Research Question", "",
+        "How well calibrated are normalized closing 1X2 probabilities, and are the patterns stable across leagues and seasons?", "",
+        "## Executive Summary", "",
+        f"- The largest overall bin deviation is {largest.outcome.title()} bin {int(largest.bin)} at {largest.error:+.1%}.",
+        "- Closing probabilities are broadly informative, but individual calibration bins remain noisy.",
+        "- Deviations are not clearly stable after splitting by league and season.",
+        "- Strong-favorite bias is worth one direct betting-return test before deeper modeling.", "",
+        "## Research Scorecard", "", "| Metric | Value |", "| --- | ---: |",
+        f"| Largest Overall Bin Error | {largest.error:+.1%} |",
+        "| Statistically Significant | Not tested |",
+        "| Stable Across Seasons | No clear evidence |",
+        "| Stable Across Leagues | No clear evidence |",
+        "| Worth Pursuing | Yes — favorite validation |", "",
+        "## Method", "",
+        "All 3,504 matches are converted from closing odds to normalized Home / Draw / Away probabilities. Each outcome uses 20 equal-frequency bins. Error is observed rate minus average inferred probability.", "",
+        "## Results", "", "### Overall", "", calibration_summary(overall), "",
+        "![Overall calibration](figures/overall.png)", "",
+        "### By Season", "", calibration_summary(by_season, "season"), "",
+        "### By League", "", calibration_summary(by_league, "league"), "",
+        "Full bin-level tables and supporting figures are exported under `tables/` and `figures/`.", "",
+        "## Discussion", "",
+        "- Small calibration errors can be economically irrelevant after bookmaker margin.",
+        "- League-level bins contain only about 30–38 matches, so large deviations are unstable.",
+        "- Calibration should be translated into realized betting returns before treating it as an edge.", "",
+        "## Next Experiment", "", "**Question**", "",
+        "Does the apparent calibration bias among strong Home and Away favorites survive bookmaker margin?", "",
+        "**Experiment**", "",
+        "- Select the highest 5%–25% normalized Home and Away probabilities.",
+        "- Calculate flat-bet ROI and bootstrap confidence intervals.",
+        "- Check stability overall, by season, and by league.", "",
     ]
     (REPORT / "report.md").write_text("\n".join(lines), encoding="utf-8")
 
