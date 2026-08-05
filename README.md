@@ -14,13 +14,14 @@ The dataset covers the 2024–25 and 2025–26 completed seasons for:
 - Serie A (`I1`)
 - Ligue 1 (`F1`)
 
-### Setup
+### Environment
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+conda activate soccer
+python -m pip install -r requirements.txt
 ```
+
+The project uses the existing Conda environment named `soccer`. The requirements file records the reproducible dependency versions for the dataset build.
 
 Download the league CSV files manually from [football-data.co.uk](https://www.football-data.co.uk/data.php) and place them in:
 
