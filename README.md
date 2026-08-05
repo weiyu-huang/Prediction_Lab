@@ -2,7 +2,7 @@
 
 Prediction Lab is a quantitative research laboratory for understanding probabilistic markets. The first milestone is a clean, reproducible dataset of Big Five European soccer matches and closing 1X2 odds.
 
-See [Vision and Principles](docs/vision_and_principles.md), the [Roadmap](docs/roadmap.md), the [Phase 0 dataset specification](docs/phase0_dataset.md), and the [v0 validation report](docs/validation_report_v0.md).
+See [Vision and Principles](docs/vision_and_principles.md), the [Roadmap](docs/roadmap.md), and the [v0 validation report](reports/validation_report_v0.md).
 
 ## Phase 0 — Big Five Dataset v0
 
@@ -55,3 +55,13 @@ The command validates the inputs and writes:
 - `data/processed/matches.parquet`
 
 Both raw and processed datasets are intentionally versioned in Git. Football-data.co.uk kickoff values are interpreted as UK local time, including GMT/BST daylight-saving rules, and converted to UTC for `kickoff_time_utc`. The original source clock value remains unchanged in `time`.
+
+## Phase 1 — Market Calibration
+
+Run the complete calibration analysis with:
+
+```bash
+python src/analyze_calibration.py
+```
+
+The analysis removes the 1X2 bookmaker overround by normalizing inverse closing odds, then measures Home / Draw / Away calibration overall, by league, and by season using 20 quantile bins. Tables, supporting figures, and the generated report are written to `reports/phase1_market_calibration/`.
