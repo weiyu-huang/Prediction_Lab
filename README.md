@@ -73,3 +73,11 @@ python src/analyze_favorite_edge.py
 ```
 
 This tests whether strong-favorite calibration bias survives bookmaker margin and produces positive flat-betting returns. Results are written to `reports/02_favorite_edge_validation/`.
+
+Validate season-trained absolute favorite thresholds out of sample with:
+
+```bash
+python src/analyze_threshold_validation.py
+```
+
+The analysis searches thresholds on one season, locks the best eligible rule, and evaluates it unchanged on the other season in both directions. Results are written to `reports/03_favorite_threshold_validation/`.
