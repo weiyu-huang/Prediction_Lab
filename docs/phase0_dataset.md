@@ -8,7 +8,7 @@ Use manually downloaded CSV files from `football-data.co.uk`. The dataset contai
 
 ## Inputs and outputs
 
-Original, unmodified files belong under `data/raw/<season>/`. The build produces `data/processed/matches.csv` and `data/processed/matches.parquet`. Both raw and processed data are committed to Git.
+Original, unmodified files belong under `data/raw/2024-2025/` and `data/raw/2025-2026/`. Each season directory contains `premier_league.csv`, `laliga.csv`, `bundesliga.csv`, `serie_a.csv`, and `ligue1.csv`. The build produces `data/processed/matches.csv` and `data/processed/matches.parquet`. Both raw and processed data are committed to Git.
 
 ## Processed schema
 

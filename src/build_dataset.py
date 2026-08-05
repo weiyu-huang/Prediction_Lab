@@ -12,8 +12,15 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 RAW_DIR = ROOT / "data" / "raw"
 PROCESSED_DIR = ROOT / "data" / "processed"
-SEASONS = ("2024_25", "2025_26")
-LEAGUES = ("E0", "D1", "SP1", "I1", "F1")
+SEASONS = ("2024-2025", "2025-2026")
+LEAGUE_FILES = {
+    "E0": "premier_league.csv",
+    "D1": "bundesliga.csv",
+    "SP1": "laliga.csv",
+    "I1": "serie_a.csv",
+    "F1": "ligue1.csv",
+}
+LEAGUES = tuple(LEAGUE_FILES)
 RAW_COLUMNS = (
     "Div",
     "Date",
@@ -50,12 +57,19 @@ def load_matches() -> pd.DataFrame:
     frames: list[pd.DataFrame] = []
 
     for season in SEASONS:
-        for league in LEAGUES:
-            path = RAW_DIR / season / f"{league}.csv"
+        for league, filename in LEAGUE_FILES.items():
+            path = RAW_DIR / season / filename
             if not path.is_file():
                 missing_files.append(str(path.relative_to(ROOT)))
                 continue
             frame = pd.read_csv(path, encoding="utf-8-sig")
+            actual_leagues = set(frame["Div"].dropna().unique()) if "Div" in frame else set()
+            if actual_leagues != {league}:
+                raise ValueError(
+                    f"{path.relative_to(ROOT)} should contain Div={league}, "
+                    f"found {sorted(actual_leagues)}"
+                )
+            frame = frame[list(RAW_COLUMNS)].copy()
             frame["_season"] = season
             frame["_source_file"] = str(path.relative_to(ROOT))
             frames.append(frame)

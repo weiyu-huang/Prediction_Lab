@@ -2,7 +2,7 @@
 
 Prediction Lab is a quantitative research laboratory for understanding probabilistic markets. The first milestone is a clean, reproducible dataset of Big Five European soccer matches and closing 1X2 odds.
 
-See [Vision and Principles](docs/vision_and_principles.md), the [Roadmap](docs/roadmap.md), and the [Phase 0 dataset specification](docs/phase0_dataset.md).
+See [Vision and Principles](docs/vision_and_principles.md), the [Roadmap](docs/roadmap.md), the [Phase 0 dataset specification](docs/phase0_dataset.md), and the [v0 validation report](docs/validation_report_v0.md).
 
 ## Phase 0 — Big Five Dataset v0
 
@@ -26,8 +26,19 @@ The project uses the existing Conda environment named `soccer`. The requirements
 Download the league CSV files manually from [football-data.co.uk](https://www.football-data.co.uk/data.php) and place them in:
 
 ```text
-data/raw/2024_25/{E0,D1,SP1,I1,F1}.csv
-data/raw/2025_26/{E0,D1,SP1,I1,F1}.csv
+data/raw/
+├── 2024-2025/
+│   ├── premier_league.csv
+│   ├── laliga.csv
+│   ├── bundesliga.csv
+│   ├── serie_a.csv
+│   └── ligue1.csv
+└── 2025-2026/
+    ├── premier_league.csv
+    ├── laliga.csv
+    ├── bundesliga.csv
+    ├── serie_a.csv
+    └── ligue1.csv
 ```
 
 Raw files are source artifacts and must not be modified.
