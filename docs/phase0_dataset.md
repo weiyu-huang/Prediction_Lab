@@ -32,7 +32,7 @@ The build adds a deterministic `match_id` and a UTC-aware `kickoff_time_utc`. Th
 
 The single-file pipeline loads all inputs, validates raw data, processes matches, validates the output, and saves both formats. It rejects missing inputs or values, invalid results, negative goals, odds at or below 1, invalid kickoff times, duplicate match IDs, and implausible league-season row counts.
 
-Football-data kickoff times are treated as UTC for v0 without adjustment. Several matches should be manually verified against an independent source before the dataset is considered final.
+Football-data kickoff values are interpreted as UK local time using `Europe/London` timezone rules, including GMT/BST daylight-saving transitions, and converted to UTC. The original source clock value is preserved in `time`. Several matches should be manually verified against an independent source before the dataset is considered final.
 
 ## Scope boundaries
 

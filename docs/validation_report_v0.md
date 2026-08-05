@@ -33,6 +33,12 @@ The source `Time` field matches the published local wall-clock kickoff in the ch
 - Athletic Club–Getafe on 2024-08-15: source `18:00`; Athletic Club published `19:00 CEST`.
 - Bayern Munich–RB Leipzig on 2025-08-22: source `19:30`; DFB published `20:30 +02:00`.
 
-These checks show that football-data normalizes at least some continental kickoff values to UK time, while the values still observe daylight-saving time. Per the v0 specification, the pipeline preserves the source clock value and labels it UTC without applying timezone conversion. Consequently, `kickoff_time_utc` is a simplifying v0 convention and can differ from the true UTC instant by one hour during daylight-saving time. This limitation must be corrected before kickoff timestamps are used for time-sensitive joins or modeling.
+These checks show that football-data normalizes at least some continental kickoff values to UK local time. The pipeline therefore localizes the source date and time with `Europe/London`, automatically applying GMT/BST daylight-saving rules, and then converts the timestamp to UTC. The original wall-clock value remains unchanged in `time`.
+
+The resulting UTC spot checks are:
+
+- Manchester United–Fulham: `20:00 BST` → `19:00 UTC`.
+- Athletic Club–Getafe: source `18:00 BST` / published `19:00 CEST` → `17:00 UTC`.
+- Bayern Munich–RB Leipzig: source `19:30 BST` / published `20:30 CEST` → `18:30 UTC`.
 
 Sources: [Manchester United](https://www.manutd.com/en/news/detail/match-preview-for-man-utd-v-fulham-in-the-premier-league-13-august-2024), [Athletic Club](https://www.athletic-club.eus/en/news/2024/08/15/match-pack-athletic-club-vs-getafe-cf/), and [DFB Datencenter](https://datencenter.dfb.de/en/data-center/bundesliga/2025-2026/1-matchday/2398217).

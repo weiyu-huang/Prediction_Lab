@@ -54,4 +54,4 @@ The command validates the inputs and writes:
 - `data/processed/matches.csv`
 - `data/processed/matches.parquet`
 
-Both raw and processed datasets are intentionally versioned in Git. Kickoff times from football-data.co.uk are treated as UTC in v0; this is an explicit simplifying assumption that should be manually spot-checked.
+Both raw and processed datasets are intentionally versioned in Git. Football-data.co.uk kickoff values are interpreted as UK local time, including GMT/BST daylight-saving rules, and converted to UTC for `kickoff_time_utc`. The original source clock value remains unchanged in `time`.

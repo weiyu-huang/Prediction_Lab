@@ -155,14 +155,22 @@ def process_matches(matches: pd.DataFrame) -> pd.DataFrame:
         raise ValueError(f"Invalid dates:\n{bad.to_string(index=False)}")
     result["date"] = parsed_dates.dt.strftime("%Y-%m-%d")
     result["time"] = result["time"].astype("string").str.strip()
-    result["kickoff_time_utc"] = pd.to_datetime(
-        result["date"] + " " + result["time"], utc=True, errors="coerce"
+    source_kickoff = pd.to_datetime(
+        result["date"] + " " + result["time"], errors="coerce"
     )
-    if result["kickoff_time_utc"].isna().any():
+    if source_kickoff.isna().any():
         bad = result.loc[
-            result["kickoff_time_utc"].isna(), ["_source_file", "date", "time"]
+            source_kickoff.isna(), ["_source_file", "date", "time"]
         ]
         raise ValueError(f"Invalid or missing kickoff times:\n{bad.to_string(index=False)}")
+    try:
+        result["kickoff_time_utc"] = source_kickoff.dt.tz_localize(
+            "Europe/London", ambiguous="raise", nonexistent="raise"
+        ).dt.tz_convert("UTC")
+    except (TypeError, ValueError) as error:
+        raise ValueError(
+            "Kickoff times could not be localized with Europe/London DST rules"
+        ) from error
 
     result["match_id"] = result.apply(
         lambda row: (
