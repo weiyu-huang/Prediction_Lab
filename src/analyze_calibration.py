@@ -7,7 +7,7 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "data/processed/matches.parquet"
-REPORT = ROOT / "reports/phase1_market_calibration"
+REPORT = ROOT / "reports/01_market_calibration"
 OUTCOMES = {"home": ("home_odds", "H"), "draw": ("draw_odds", "D"), "away": ("away_odds", "A")}
 LEAGUES = {"E0": "Premier League", "D1": "Bundesliga", "SP1": "La Liga", "I1": "Serie A", "F1": "Ligue 1"}
 ALIASES = {name.lower().replace(" ", ""): code for code, name in LEAGUES.items()} | {
@@ -91,7 +91,7 @@ def grouped(matches: pd.DataFrame, column: str) -> pd.DataFrame:
 
 def markdown(table: pd.DataFrame) -> str:
     table = table.copy()
-    for column in ("avg_pred", "actual", "error"):
+    for column in set(table).intersection(("avg_pred", "actual", "error")):
         table[column] = table[column].map(lambda value: f"{value:.3f}")
     headers = list(table)
     rows = [headers, ["---" if name == "outcome" else "---:" for name in headers]]
@@ -119,7 +119,7 @@ def observations(table: pd.DataFrame, scopes=()) -> list[str]:
 
 def write_report(overall, by_league, by_season):
     lines = [
-        "# Phase 1 — Market Calibration", "", "## Research question", "",
+        "# Report 01 — Market Calibration", "", "## Research question", "",
         "How well do normalized average closing 1X2 market probabilities match observed Home / Draw / Away frequencies, and is the pattern stable across leagues and seasons?",
         "", "## Dataset and method", "",
         "The analysis uses all 3,504 Big Five matches from 2024-2025 and 2025-2026. For each match, inverse Home / Draw / Away closing odds are normalized to sum to one, removing the bookmaker overround. Each outcome is grouped into 20 quantile bins, so bins have similar sample sizes. Error is `actual probability - average inferred probability`.",
@@ -137,7 +137,12 @@ def write_report(overall, by_league, by_season):
     lines += ["## Auto-generated observations", ""]
     for label, table, scopes in (("Overall", overall, ()), ("By league", by_league, ("league",)), ("By season", by_season, ("season",))):
         lines += [f"- {label}: {text}" for text in observations(table, scopes)]
-    lines += ["", "## Human analysis and follow-up hypotheses", "", "_Add interpretation, competing explanations, and the next testable questions here._", ""]
+    lines += [
+        "", "## Next Research Question", "",
+        "What have we learned? Closing-market probabilities are broadly informative, but the strongest apparent deviations become noisy after splitting by league or season.", "",
+        "What is the most valuable next experiment?", "",
+        "**Does the apparent calibration bias among strong Home and Away favorites survive bookmaker margin and translate into positive flat-betting returns?**", "",
+    ]
     (REPORT / "report.md").write_text("\n".join(lines), encoding="utf-8")
 
 

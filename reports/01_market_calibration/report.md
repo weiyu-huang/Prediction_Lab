@@ -1,4 +1,4 @@
-# Phase 1 — Market Calibration
+# Report 01 — Market Calibration
 
 ## Research question
 
@@ -565,6 +565,10 @@ The analysis uses all 3,504 Big Five matches from 2024-2025 and 2025-2026. For e
 - By season: Largest absolute error: season=2025-2026, outcome=home, bin=10 (error +0.135, n=88).
 - By season: No bin has fewer than 50 observations.
 
-## Human analysis and follow-up hypotheses
+## Next Research Question
 
-_Add interpretation, competing explanations, and the next testable questions here._
+What have we learned? Closing-market probabilities are broadly informative, but the strongest apparent deviations become noisy after splitting by league or season.
+
+What is the most valuable next experiment?
+
+**Does the apparent calibration bias among strong Home and Away favorites survive bookmaker margin and translate into positive flat-betting returns?**

@@ -2,7 +2,7 @@
 
 Prediction Lab is a quantitative research laboratory for understanding probabilistic markets. The first milestone is a clean, reproducible dataset of Big Five European soccer matches and closing 1X2 odds.
 
-See [Vision and Principles](docs/vision_and_principles.md), the [Roadmap](docs/roadmap.md), and the [v0 validation report](reports/validation_report_v0.md).
+See [Vision and Principles](docs/vision_and_principles.md), the [Roadmap](docs/roadmap.md), and the [dataset validation report](reports/00_dataset_validation.md).
 
 ## Phase 0 — Big Five Dataset v0
 
@@ -64,4 +64,12 @@ Run the complete calibration analysis with:
 python src/analyze_calibration.py
 ```
 
-The analysis removes the 1X2 bookmaker overround by normalizing inverse closing odds, then measures Home / Draw / Away calibration overall, by league, and by season using 20 quantile bins. Tables, supporting figures, and the generated report are written to `reports/phase1_market_calibration/`.
+The analysis removes the 1X2 bookmaker overround by normalizing inverse closing odds, then measures Home / Draw / Away calibration overall, by league, and by season using 20 quantile bins. Tables, supporting figures, and the generated report are written to `reports/01_market_calibration/`.
+
+Run the favorite edge validation with:
+
+```bash
+python src/analyze_favorite_edge.py
+```
+
+This tests whether strong-favorite calibration bias survives bookmaker margin and produces positive flat-betting returns. Results are written to `reports/02_favorite_edge_validation/`.

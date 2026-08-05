@@ -34,6 +34,10 @@ Every week should answer one concrete question. Every month should unlock one ne
 
 Every dataset should be rebuildable. Every experiment should be reproducible. Every conclusion should be supported by evidence.
 
+### Every report opens the next question.
+
+A report should not end at its conclusion. It should state what we learned and identify the most valuable next experiment, so Prediction Lab develops as a continuous research log rather than a collection of isolated analyses.
+
 ---
 
 ## Research Workflow
